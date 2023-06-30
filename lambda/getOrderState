@@ -1,0 +1,37 @@
+import json
+import boto3
+from decimal import Decimal
+
+def lambda_handler(event, context):
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('OrderStatus')
+
+    response = table.scan(
+        FilterExpression='orderStatus <> :state',
+        ExpressionAttributeValues={':state': 'Finished'},
+    )
+
+    items = response['Items']
+    items= decimal_to_int(items)
+    if not items:
+        return {'statusCode': 202, 'body': json.dumps({})}
+        
+    orders = []
+    for item in items:
+        orders.append({'orderId': int(item['orderId']), 'orderItems': item['orderItems'], 'orderStatus': item['orderStatus']})
+    
+    print(orders)
+    return {
+        'statusCode': 200,
+        'body': json.dumps(orders)
+    }
+
+def decimal_to_int(data):
+    if isinstance(data, dict):
+        return {k: decimal_to_int(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [decimal_to_int(item) for item in data]
+    elif isinstance(data, Decimal):
+        return int(data)
+    else:
+        return data
