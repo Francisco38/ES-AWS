@@ -1,0 +1,46 @@
+import json
+import boto3
+
+def lambda_handler(event, context):
+    orderId=event['orderId']
+
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('OrderStatus')
+
+    response = table.scan(
+        FilterExpression='orderStatus = :state',
+        ExpressionAttributeValues={':state': 'queue'},
+        ProjectionExpression='orderId'
+    )
+
+    items = response['Items']
+    if not items:
+        return {'statusCode': 202, 'body': 'No orders found in queue state.'}
+        
+    items = response['Items']
+    lowest_order_id =items[0]['orderId']
+    print(lowest_order_id)
+    for item in items:
+        if lowest_order_id > item['orderId']:
+            lowest_order_id=item['orderId']
+    
+    client = boto3.client('stepfunctions', region_name='us-east-1')
+    # Define the input data for the state machine
+    print(lowest_order_id)
+    lowest_order_id=int(lowest_order_id)
+    input_data = {
+        "orderId":  lowest_order_id
+    }
+    
+    # Define the ARN of the state machine to invoke
+    state_machine_arn = 'arn:aws:states:us-east-1:068263486969:stateMachine:robotController'
+
+    # Start the execution of the state machine
+    response = client.start_execution(
+        stateMachineArn=state_machine_arn,
+        input=json.dumps(input_data)
+    )
+    return {
+        'statusCode': 200,
+        'body': json.dumps(input_data)
+    }
