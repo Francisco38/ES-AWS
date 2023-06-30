@@ -1,0 +1,48 @@
+import random
+import json
+
+def lambda_handler(event, context):
+    drugs = [
+        {"name": "Advair Diskus", "price": 300.0, "alternatives": [
+            {"name": "Symbicort", "price": 280.0}
+        ]},
+        {"name": "Crestor", "price": 240.0, "alternatives": [
+            {"name": "Atorvastatin", "price": 10.0}
+        ]},
+        {"name": "Januvia", "price": 400.0, "alternatives": [
+            {"name": "Metformin", "price": 10.0}
+        ]},
+        {"name": "Nexium", "price": 200.0, "alternatives": [
+            {"name": "Prilosec", "price": 20.0}
+        ]},
+        {"name": "Plavix", "price": 170.0, "alternatives": [
+            {"name": "Aspirin", "price": 5.0}
+        ]},
+        {"name": "Synthroid", "price": 15.0, "alternatives": [
+            {"name": "Levothyroxine", "price": 10.0}
+        ]},
+        {"name": "Xarelto", "price": 400.0, "alternatives": [
+            {"name": "Warfarin", "price": 5.0}
+        ]},
+        {"name": "Zoloft", "price": 80.0, "alternatives": [
+            {"name": "Prozac", "price": 75.0}
+        ]},
+        {"name": "Metoprolol", "price": 30.0, "alternatives": [
+            {"name": "Atenolol", "price": 10.0}
+        ]}
+    ]
+    
+    prescription = []
+    drugs_selected = set()
+    numDrugs=random.randint(1, len(drugs))
+    for i in range(numDrugs):
+        while True:
+            drug = random.choice(drugs)
+            if drug["name"] not in drugs_selected:
+                drugs_selected.add(drug["name"])
+                prescription.append(drug)
+                break
+    return {
+        "statusCode": 200,
+        "body": json.dumps(prescription)
+    }
