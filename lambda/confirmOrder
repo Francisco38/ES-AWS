@@ -1,0 +1,20 @@
+import json
+import time
+import boto3
+
+def lambda_handler(event, context):
+    # Initialize a DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    response = dynamodb.update_item(
+        TableName='OrderStatus',
+        Key={'orderId': {'N': str(event['orderId'])}},
+        UpdateExpression='SET orderStatus = :new_status',
+        ExpressionAttributeValues={':new_status': {'S': 'confirmed'}}
+    )
+    
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Hello from Lambda!')
+    }
