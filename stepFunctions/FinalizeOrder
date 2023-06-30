@@ -1,0 +1,130 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Choice",
+  "States": {
+    "Choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.payment",
+          "NumericEquals": 1,
+          "Next": "Credit card"
+        },
+        {
+          "Variable": "$.payment",
+          "NumericEquals": 2,
+          "Next": "Add database"
+        },
+        {
+          "Variable": "$.payment",
+          "NumericEquals": 3,
+          "Next": "Face Recon"
+        }
+      ]
+    },
+    "Credit card": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:068263486969:function:CreditCard:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Choice (2)",
+      "ResultPath": "$.result",
+      "ResultSelector": {
+        "statusCode.$": "$.Payload.statusCode"
+      }
+    },
+    "Choice (2)": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.result.statusCode",
+          "NumericEquals": 200,
+          "Next": "Add database"
+        }
+      ],
+      "Default": "Success"
+    },
+    "Add database": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:068263486969:function:addOrder:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "ResultPath": "$.result",
+      "Next": "Success",
+      "ResultSelector": {
+        "statusCode.$": "$.Payload.statusCode",
+        "orderId.$": "$.Payload.body"
+      }
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "Face Recon": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:068263486969:function:paymentVal:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Choice (1)",
+      "ResultPath": "$.result",
+      "ResultSelector": {
+        "statusCode.$": "$.Payload.statusCode"
+      }
+    },
+    "Choice (1)": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.result.statusCode",
+          "NumericEquals": 200,
+          "Next": "Add database"
+        }
+      ],
+      "Default": "Success"
+    }
+  }
+}
