@@ -1,0 +1,149 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Comand robot",
+  "States": {
+    "Comand robot": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:068263486969:function:comandRobot:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Wait",
+      "ResultPath": null
+    },
+    "Wait": {
+      "Type": "Wait",
+      "Seconds": 3,
+      "Next": "Verify confirmation"
+    },
+    "Verify confirmation": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:068263486969:function:verifyConfirm:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Choice",
+      "ResultSelector": {
+        "statusCode.$": "$.Payload.statusCode",
+        "orderId.$": "$.Payload.body"
+      },
+      "ResultPath": "$.result"
+    },
+    "Choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.result.statusCode",
+          "NumericEquals": 200,
+          "Next": "Finalize process"
+        },
+        {
+          "Variable": "$.result.statusCode",
+          "NumericEquals": 202,
+          "Next": "Wait"
+        }
+      ]
+    },
+    "Finalize process": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:068263486969:function:finalizeRobot:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "ResultPath": null,
+      "Next": "next order"
+    },
+    "next order": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:068263486969:function:callRobot:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Choice (1)",
+      "ResultSelector": {
+        "statusCode.$": "$.Payload.statusCode",
+        "orderId.$": "$.Payload.body"
+      },
+      "ResultPath": "$.next"
+    },
+    "Choice (1)": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.next.statusCode",
+          "NumericEquals": 200,
+          "Next": "Success"
+        },
+        {
+          "Variable": "$.next.statusCode",
+          "NumericEquals": 202,
+          "Next": "Wait (1)"
+        }
+      ]
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "Wait (1)": {
+      "Type": "Wait",
+      "Seconds": 3,
+      "Next": "next order"
+    }
+  }
+}
