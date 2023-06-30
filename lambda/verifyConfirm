@@ -1,0 +1,34 @@
+import json
+import boto3
+
+def lambda_handler(event, context):
+    import boto3
+
+    orderId=event['orderId']
+    # Initialize a DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    # Define the parameters for the query
+    key_condition_expression = 'orderId = :partition_key'
+    expression_attribute_values = {':partition_key': {'N': str(orderId)}}
+
+    # Perform the query
+    response = dynamodb.query(
+        TableName='OrderStatus',
+        KeyConditionExpression=key_condition_expression,
+        ExpressionAttributeValues=expression_attribute_values
+    )
+
+    # Process the results
+    status = response['Items'][0]['orderStatus']
+    print(status)
+    if(status=={'S': 'confirmed'}):
+        return {
+            'statusCode': 200,
+            'body': json.dumps('nice')
+        }
+        
+    return {
+        'statusCode': 202,
+        'body': json.dumps('Hello from Lambda!')
+    }
